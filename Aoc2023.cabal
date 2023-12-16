@@ -27,6 +27,7 @@ library
   exposed-modules:
       Aoc2023.Puzzle1
       Aoc2023.Puzzle2
+      Aoc2023.Puzzle3
   other-modules:
       Paths_Aoc2023
   autogen-modules:
@@ -36,6 +37,8 @@ library
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
+    , containers
+    , parsec
   default-language: Haskell2010
 
 executable Aoc2023-exe

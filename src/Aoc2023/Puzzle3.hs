@@ -11,7 +11,7 @@ import qualified Data.Set as Set
 
 data Schema
   = PartNumber Int (Int, Int) (Int, Int)
-  | Symbol     (Int, Int)
+  | Symbol     Char (Int, Int)
   deriving (Show, Read)
 
 
@@ -25,8 +25,8 @@ partNumber = do
 symbol :: Stream s Identity Char => Parsec s u Schema
 symbol = do
   start <- getPosition
-  _ <- satisfy (\c -> c /= '.' && not (isAlphaNum c) && not (isControl c))
-  return $ Symbol (sourceLine start, sourceColumn start)
+  c <- satisfy (\c -> c /= '.' && not (isAlphaNum c) && not (isControl c))
+  return $ Symbol c (sourceLine start, sourceColumn start)
 
 schema :: Stream s Identity Char => Parsec s u [Schema]
 schema = do
@@ -40,7 +40,7 @@ schema = do
 
 
 symbolPositions :: [Schema] -> Set (Int, Int)
-symbolPositions s = Set.fromList [p | Symbol p <- s]
+symbolPositions s = Set.fromList [p | Symbol _ p <- s]
 
 -- | Return all positions 
 surrounding :: (Int, Int) -> (Int, Int) -> Set (Int, Int)
@@ -48,7 +48,7 @@ surrounding (l1, c1) (l2, c2)
   = Set.fromList [(l, c) | l <- [l1-1 .. l2+1], c <- [c1 - 1 .. c2]]
 
 isPart :: Set (Int, Int) -> Schema -> Bool
-isPart _ (Symbol _) = False
+isPart _ (Symbol _ _) = False
 isPart p (PartNumber _ start end)
   = not $ null $ surrounding start end `Set.intersection` p
 

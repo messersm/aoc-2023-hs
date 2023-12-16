@@ -1,6 +1,7 @@
 module Main (main) where
 
 import qualified Aoc2023.Puzzle1 as Puzzle1
+import qualified Aoc2023.Puzzle2 as Puzzle2
 
 import System.Environment
 import System.Exit
@@ -9,6 +10,7 @@ import System.IO
 puzzles :: [(String -> String, String -> String)]
 puzzles =
   [ (show . Puzzle1.part1, show . Puzzle1.part2)
+  , (show . Puzzle2.part1, show . Puzzle2.part2)
   ]
 
 main :: IO ()

@@ -2,6 +2,7 @@
 
 module Aoc2023.Puzzle3 where
 
+import Control.Monad
 import Data.Char
 import Data.Functor.Identity
 import Text.Parsec
@@ -61,5 +62,15 @@ part1 content
     Left _ -> error "Invalid input"
 
 
-part2 :: String -> Int
-part2 = undefined
+gearRatios :: [Schema] -> [Int]
+gearRatios items = do
+  pos <- [Set.singleton p | g@(Symbol '*' p) <- items]
+  let numbers = [ x | n@(PartNumber x _ _) <- items, isPart pos n ]
+  guard (length numbers == 2)
+  return $ product numbers
+
+-- part2 :: String -> Int
+part2 content
+  = case parse schema "puzzle 3" content of
+    Right items -> sum $ gearRatios items
+    Left _ -> error "Invalid input"

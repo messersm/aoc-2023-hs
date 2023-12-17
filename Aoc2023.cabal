@@ -29,6 +29,8 @@ library
       Aoc2023.Puzzle2
       Aoc2023.Puzzle3
       Aoc2023.Puzzle4
+      Aoc2023.Puzzle5
+      Lib.ReadP
   other-modules:
       Paths_Aoc2023
   autogen-modules:

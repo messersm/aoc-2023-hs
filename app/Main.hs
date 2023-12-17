@@ -4,6 +4,7 @@ import qualified Aoc2023.Puzzle1 as Puzzle1
 import qualified Aoc2023.Puzzle2 as Puzzle2
 import qualified Aoc2023.Puzzle3 as Puzzle3
 import qualified Aoc2023.Puzzle4 as Puzzle4
+import qualified Aoc2023.Puzzle5 as Puzzle5
 
 import System.Environment
 import System.Exit
@@ -15,6 +16,7 @@ puzzles =
   , (show . Puzzle2.part1, show . Puzzle2.part2)
   , (show . Puzzle3.part1, show . Puzzle3.part2)
   , (show . Puzzle4.part1, show . Puzzle4.part2)
+  , (show . Puzzle5.part1, show . Puzzle5.part2)
   ]
 
 main :: IO ()

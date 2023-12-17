@@ -1,5 +1,7 @@
 module Aoc2023.Puzzle4 where
 
+import Lib.ReadP
+
 import Control.Applicative ((<|>))
 import Control.Monad.State.Strict (State, get, put, runState, execState)
 import Control.Monad
@@ -13,26 +15,7 @@ import Data.Set (Set)
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
 
-
 data Card = Card Int (Set Int) (Set Int) deriving (Read, Show)
-
--- | ReadP parser for non-negative integers
---
--- Examples:
---
--- >>> readP_to_S (natural <* eof) "411"
--- [(411,"")]
--- >>> readP_to_S (natural <* eof) "0"
--- [(0,"")]
--- >>> readP_to_S (natural <* eof) "sometext0"
--- []
--- >>> readP_to_S (natural <* eof) "-20"
--- []
-natural :: ReadP Int
-natural = read <$> (many1 $ satisfy isDigit)
-
-newline :: ReadP Char
-newline = char '\n'
 
 -- | ReadP parser for Card
 --

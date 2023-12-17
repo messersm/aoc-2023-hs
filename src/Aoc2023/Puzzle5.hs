@@ -10,61 +10,59 @@ import Data.Bifunctor
 import Data.Functor
 import Data.Map.Lazy (Map)
 import Data.Maybe
+import GHC.Data.Maybe
 import Text.ParserCombinators.ReadP
 
 import qualified Data.Map.Lazy as Map
 
-
-newtype Seed = Seed Int deriving (Read, Show, Eq, Ord, Enum)
-newtype Soil = Soil Int deriving (Read, Show, Eq, Ord, Enum)
-newtype Fertilizer = Fertilizer Int deriving (Read, Show, Eq, Ord, Enum)
-newtype Water = Water Int deriving (Read, Show, Eq, Ord, Enum)
-newtype Light = Light Int deriving (Read, Show, Eq, Ord, Enum)
+newtype Seed = Seed Int deriving (Show, Eq, Ord, Enum)
+newtype Soil = Soil Int deriving (Show, Eq, Ord, Enum)
+newtype Fertilizer = Fertilizer Int deriving (Show, Eq, Ord, Enum)
+newtype Water = Water Int deriving (Show, Eq, Ord, Enum)
+newtype Light = Light Int deriving (Show, Eq, Ord, Enum)
 newtype Temperature = Temperature Int deriving (Read, Show, Eq, Ord, Enum)
-newtype Humidity = Humidity Int deriving (Read, Show, Eq, Ord, Enum)
-newtype Location = Location Int deriving (Read, Show, Eq, Ord, Enum)
+newtype Humidity = Humidity Int deriving (Show, Eq, Ord, Enum)
+newtype Location = Location Int deriving (Show, Eq, Ord, Enum)
+
+newtype RangeMap a b = RangeMap [(a, b, Int)]
+
+
+reverse :: RangeMap a b -> RangeMap b a
+reverse (RangeMap rs) = RangeMap [(y, x, r) | (x, y, r) <- rs]
+
+instance (Show a, Show b) => Show (RangeMap a b) where
+  show (RangeMap rs) = "RangeMap " ++ show rs
+
+toFunction :: (Enum a, Enum b) => (a, b, Int) -> a -> Maybe b
+toFunction (x, y, r) x'
+    | value <  start = Nothing
+    | value >= end   = Nothing
+    | otherwise      = Just $ toEnum $ fromEnum y - start + value
+  where
+    value = fromEnum x'
+    start = fromEnum x
+    end = start + r
+
+(!?) :: (Enum a, Enum b) => RangeMap a b -> a -> Maybe b
+(RangeMap rs) !? k = firstJusts $ toFunction <$> rs <*> [k]
+
+infixr 6 !?!
+(!?!) :: (Enum a, Enum b) => RangeMap a b -> a -> b
+m !?! k = m !? k `orElse` (toEnum $ fromEnum k)
 
 data Almanac = Almanac
   { seeds :: [Seed]
-  , seedToSoil :: (Map Seed Soil)
-  , soilToFertilizer :: (Map Soil Fertilizer)
-  , fertilizerToWater :: (Map Fertilizer Water)
-  , waterToLight :: (Map Water Light)
-  , lightToTemperature :: (Map Light Temperature)
-  , temperatureToHumidity :: (Map Temperature Humidity)
-  , humidityToLocation :: (Map Humidity Location)
+  , seedToSoil :: RangeMap Seed Soil
+  , soilToFertilizer :: RangeMap Soil Fertilizer
+  , fertilizerToWater :: RangeMap Fertilizer Water
+  , waterToLight :: RangeMap Water Light
+  , lightToTemperature :: RangeMap Light Temperature
+  , temperatureToHumidity :: RangeMap Temperature Humidity
+  , humidityToLocation :: RangeMap Humidity Location
   }
-  deriving (Read, Show)
+  deriving (Show)
 
-
-fillWithDefault :: (Ord a, Enum a, Enum b) => [a] -> Map a b -> Map a b
-fillWithDefault xs m
-  = m `Map.union` Map.fromList [(x, toEnum $ fromEnum x) | x <- xs]
-
--- | Compose two maps inserting default values, if required.
-(<.>) :: (Ord a, Ord b, Enum b, Enum c) => Map a b -> Map b c -> Map a c
-m1 <.> m2 = Map.compose m2' m1
-  where
-    m2' = fillWithDefault (Map.elems m1) m2
-
-
--- | Map lookup with default using enum instances
-infixr 6 !?!
-(!?!) :: (Ord a, Enum a, Enum b) => Map a b -> a -> b
-m !?! k = Map.lookup k m `orElse` (toEnum $ fromEnum k)
-  where
-    x `orElse` y = maybe y id x
-
--- | Parses (dest, src, range) information into a list of pairs (src, dest).
---
--- Examples:
---
--- >>> fst $ head $ readP_to_S (mapping <* eof) "52 50 10"
--- [(50,52),(51,53),(52,54),(53,55),(54,56),(55,57),(56,58),(57,59),(58,60),(59,61)]
--- >>> result = fst $ head $ readP_to_S (mapping <* eof) "50 98 2\n52 50 48"
--- >>> result == [(98+i,50+i) | i <- [0..1]] ++ [(50+i,52+i) | i <- [0..47]]
--- True
-mapping :: ReadP [(Int, Int)]
+mapping :: (Enum a, Enum b) => ReadP (RangeMap a b)
 mapping = do
   xs <- many $ do
     dest <- natural
@@ -73,13 +71,11 @@ mapping = do
     string " " *> skipSpaces
     range <- natural
     optional newline
-    return $ zip [src .. src + range - 1] [dest .. dest + range - 1]
+
+    return (toEnum src, toEnum dest, range)
   
   skipSpaces
-  return $ concat xs
-
-fromMapping :: (Ord a, Enum a, Enum b) => ReadP (Map a b)
-fromMapping = fmap (bimap toEnum toEnum) <$> mapping <&> Map.fromList
+  return $ RangeMap xs
 
 almanacP :: ReadP Almanac
 almanacP = do
@@ -87,25 +83,25 @@ almanacP = do
   skipSpaces
 
   string "seed-to-soil map:" *> skipSpaces
-  seedToSoil <- fromMapping
+  seedToSoil <- mapping
 
   string "soil-to-fertilizer map:" *> skipSpaces
-  soilToFertilizer <- fromMapping
+  soilToFertilizer <- mapping
 
   string "fertilizer-to-water map:" *> skipSpaces
-  fertilizerToWater <- fromMapping
+  fertilizerToWater <- mapping
 
   string "water-to-light map:" *> skipSpaces
-  waterToLight <- fromMapping
+  waterToLight <- mapping
 
   string "light-to-temperature map:" *> skipSpaces
-  lightToTemperature <- fromMapping
+  lightToTemperature <- mapping
 
   string "temperature-to-humidity map:" *> skipSpaces
-  temperatureToHumidity <- fromMapping
+  temperatureToHumidity <- mapping
 
   string "humidity-to-location map:" *> skipSpaces
-  humidityToLocation <- fromMapping
+  humidityToLocation <- mapping
 
   eof
 
@@ -119,12 +115,7 @@ almanacP = do
     temperatureToHumidity
     humidityToLocation
 
--- | Create a function from a map using defaults from `def`
--- | if the given key doesn't exist.
-fromMap :: (a -> b) -> Map a b -> (a -> b)
-fromMap def m = undefined
-
--- part1 :: String -> Int
+part1 :: String -> (Location, Seed)
 part1 input = minimum locations
   where
     almanac = fst $ head $ readP_to_S almanacP input
@@ -140,5 +131,27 @@ part1 input = minimum locations
     locations = [(m7 !?! m6 !?! m5 !?! m4 !?! m3 !?! m2 !?! m1 !?! s, s)
                 | s <- almanac.seeds]
 
-part2 :: String -> Int
-part2 = undefined
+seedRanges :: [Seed] -> [Seed]
+seedRanges seeds
+    = concat [[toEnum $ start+i | i <- [0..r-1]] | (idx, (start, r)) <- ys, even idx]
+  where
+    ss = fromEnum <$> seeds
+    ys = zip [0..] $ zip ss (drop 1 ss)
+
+part2 :: String -> (Location, Seed)
+part2 input = minimum locations
+  where
+    almanac = fst $ head $ readP_to_S almanacP input
+
+    m1 = almanac.seedToSoil
+    m2 = almanac.soilToFertilizer
+    m3 = almanac.fertilizerToWater
+    m4 = almanac.waterToLight
+    m5 = almanac.lightToTemperature
+    m6 = almanac.temperatureToHumidity
+    m7 = almanac.humidityToLocation
+
+    seeds = seedRanges almanac.seeds
+
+    locations = [(m7 !?! m6 !?! m5 !?! m4 !?! m3 !?! m2 !?! m1 !?! s, s)
+                | s <- seeds]

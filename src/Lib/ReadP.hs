@@ -27,3 +27,16 @@ space = char ' '
 -- | Runs the parser `p` and ignores the result.
 skip :: Applicative f => f a -> f ()
 skip p = p *> pure ()
+
+-- | Parse pairs of `p` and `q`
+--
+-- Example:
+--
+-- >>> readP_to_S ((pair natural natural) `sepBy` (many1 space) <* eof) "79 14 55 13"
+-- [([(79,14),(55,13)],"")]
+pair :: ReadP a -> ReadP b -> ReadP (a, b)
+pair p q = do
+  x <- p
+  space *> skipSpaces
+  y <- q
+  return (x, y)

@@ -1,7 +1,10 @@
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedRecordDot #-}
 
 module Aoc2023.Puzzle5 where
+
+import Prelude hiding (reverse)
 
 import Lib.ReadP
 
@@ -25,7 +28,6 @@ newtype Humidity = Humidity Int deriving (Show, Eq, Ord, Enum)
 newtype Location = Location Int deriving (Show, Eq, Ord, Enum)
 
 newtype RangeMap a b = RangeMap [(a, b, Int)]
-
 
 reverse :: RangeMap a b -> RangeMap b a
 reverse (RangeMap rs) = RangeMap [(y, x, r) | (x, y, r) <- rs]
@@ -52,6 +54,18 @@ m !?! k = m !? k `orElse` (toEnum $ fromEnum k)
 
 data Almanac = Almanac
   { seeds :: [Seed]
+  , seedToSoil :: RangeMap Seed Soil
+  , soilToFertilizer :: RangeMap Soil Fertilizer
+  , fertilizerToWater :: RangeMap Fertilizer Water
+  , waterToLight :: RangeMap Water Light
+  , lightToTemperature :: RangeMap Light Temperature
+  , temperatureToHumidity :: RangeMap Temperature Humidity
+  , humidityToLocation :: RangeMap Humidity Location
+  }
+  deriving (Show)
+
+data Almanac' = Almanac'
+  { seeds :: RangeMap Seed Seed
   , seedToSoil :: RangeMap Seed Soil
   , soilToFertilizer :: RangeMap Soil Fertilizer
   , fertilizerToWater :: RangeMap Fertilizer Water
@@ -115,6 +129,57 @@ almanacP = do
     temperatureToHumidity
     humidityToLocation
 
+seedMapP :: ReadP (RangeMap Seed Seed)
+seedMapP = RangeMap <$> p `sepBy` (string " ")
+  where
+    p = do
+      start <- toEnum <$> natural
+      string " "
+      step <- natural  
+    
+      return (start, start, step)
+
+almanacP' :: ReadP Almanac'
+almanacP' = do
+  _ <- string "seeds: "
+  xys <- (pair natural natural) `sepBy` space
+  let seeds = RangeMap [(Seed x, Seed x, y) | (x, y) <- xys]
+  newline
+  newline
+
+  string "seed-to-soil map:" *> skipSpaces
+  seedToSoil <- mapping
+
+  string "soil-to-fertilizer map:" *> skipSpaces
+  soilToFertilizer <- mapping
+
+  string "fertilizer-to-water map:" *> skipSpaces
+  fertilizerToWater <- mapping
+
+  string "water-to-light map:" *> skipSpaces
+  waterToLight <- mapping
+
+  string "light-to-temperature map:" *> skipSpaces
+  lightToTemperature <- mapping
+
+  string "temperature-to-humidity map:" *> skipSpaces
+  temperatureToHumidity <- mapping
+
+  string "humidity-to-location map:" *> skipSpaces
+  humidityToLocation <- mapping
+
+  eof
+
+  return $ Almanac'
+    seeds
+    seedToSoil
+    soilToFertilizer
+    fertilizerToWater
+    waterToLight
+    lightToTemperature
+    temperatureToHumidity
+    humidityToLocation
+
 part1 :: String -> (Location, Seed)
 part1 input = minimum locations
   where
@@ -138,20 +203,22 @@ seedRanges seeds
     ss = fromEnum <$> seeds
     ys = zip [0..] $ zip ss (drop 1 ss)
 
-part2 :: String -> (Location, Seed)
-part2 input = minimum locations
+-- part2 :: String -> Maybe (Location, Seed)
+part2 input = firstJusts locations
   where
-    almanac = fst $ head $ readP_to_S almanacP input
+    almanac = fst $ head $ readP_to_S almanacP' input
 
-    m1 = almanac.seedToSoil
-    m2 = almanac.soilToFertilizer
-    m3 = almanac.fertilizerToWater
-    m4 = almanac.waterToLight
-    m5 = almanac.lightToTemperature
-    m6 = almanac.temperatureToHumidity
-    m7 = almanac.humidityToLocation
+    m1 = reverse almanac.seedToSoil
+    m2 = reverse almanac.soilToFertilizer
+    m3 = reverse almanac.fertilizerToWater
+    m4 = reverse almanac.waterToLight
+    m5 = reverse almanac.lightToTemperature
+    m6 = reverse almanac.temperatureToHumidity
+    m7 = reverse almanac.humidityToLocation
 
-    seeds = seedRanges almanac.seeds
+    locations = do
+      location <- Location <$> [0..]
 
-    locations = [(m7 !?! m6 !?! m5 !?! m4 !?! m3 !?! m2 !?! m1 !?! s, s)
-                | s <- seeds]
+      let seed = m1 !?! m2 !?! m3 !?! m4 !?! m5 !?! m6 !?! m7 !?! location     
+      return $ (\y -> (location, y)) <$> (almanac.seeds !? seed)
+

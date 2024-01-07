@@ -30,6 +30,7 @@ library
       Aoc2023.Puzzle3
       Aoc2023.Puzzle4
       Aoc2023.Puzzle5
+      Aoc2023.Puzzle6
       Lib.ReadP
   other-modules:
       Paths_Aoc2023

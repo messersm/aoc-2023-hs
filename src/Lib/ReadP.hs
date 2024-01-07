@@ -15,7 +15,7 @@ import Text.ParserCombinators.ReadP
 -- []
 -- >>> readP_to_S (natural <* eof) "-20"
 -- []
-natural :: ReadP Int
+natural :: (Integral a, Read a) => ReadP a
 natural = read <$> (many1 $ satisfy isDigit)
 
 newline :: ReadP Char

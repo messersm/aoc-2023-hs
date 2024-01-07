@@ -66,12 +66,8 @@ solve t r = (Time t1, Time t2)
 countSolutions :: (Time, Time) -> Integer
 countSolutions (t1, t2) = fromIntegral $ t2 - t1 + (Time 1)
 
--- |
--- 
---     d(h, t) > d_record
--- <=> h * (t - h) > d_record
--- <=> h * t - h ^ 2 - d_record > 0
--- <=> h ^ 2 - h * t + d_record < 0
--- <=> (h - t / 2) ^ 2 - t ^ 2 / 4 + d_record < 0
-part1 s = product $ countSolutions . (uncurry solve) <$> (fst $ head $ readP_to_S parser s)
-part2 s = product $ countSolutions . (uncurry solve) <$> (fst $ head $ readP_to_S parser2 s)
+output :: [(Time, Distance)] -> Integer
+output = product . fmap (countSolutions . uncurry solve)
+
+part1 s = output $ fst $ head $ readP_to_S parser s
+part2 s = output $ fst $ head $ readP_to_S parser2 s
